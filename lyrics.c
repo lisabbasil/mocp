@@ -78,8 +78,33 @@ lists_t_strs *lyrics_load_file (const char *filename)
 	return result;
 }
 
+/* Return a list of lyrics lines loaded from the internet */
+static lists_t_strs *lyrics_load_inet (struct file_tags *ft)
+{
+    const char* urlTemplate = "http://lyrics.wikia.com/api.php?action=lyrics&artist=%s&song=%s&fmt=text";
+    char url[1024];
+    sprintf(url, urlTemplate, ft->artist, ft->title);
+    // TODO: Use libcurl instead of curl
+    const char* cmdTemplate = "url='%s'; curl -s \"${url// /%%20}\"";
+    //const char* cmdTemplate = "url='%s'; curl -s \"${url// /%%20}\" -H \"X-Api-Key: KEY\"";
+    char cmd[1024];
+    sprintf(cmd, cmdTemplate, url);
+    debug("Command = %s", cmd);
+    FILE* fp = popen(cmd, "r");
+    int bufsize = 1024;
+    char buf[bufsize];
+    lists_t_strs *result = lists_strs_new(1);
+    while (fgets(buf, bufsize, fp) != NULL){
+        lists_strs_append(result, buf);
+    }
+    pclose(fp);
+
+    return result;
+}
+
+
 /* Given an audio's file name, load lyrics from the default lyrics file name. */
-void lyrics_autoload (const char *filename)
+void lyrics_autoload (const char *filename, struct file_tags *ft)
 {
 	char *lyrics_filename, *extn;
 
@@ -110,8 +135,13 @@ void lyrics_autoload (const char *filename)
 	else
 		lyrics_message = "[No lyrics file!]";
 
+    if (raw_lyrics == NULL) {
+        raw_lyrics = lyrics_load_inet (ft);
+    }
+
 	free (lyrics_filename);
 }
+
 
 /* Given a line, return a centred copy of it. */
 static char *centre_line (const char* line, int max)
