@@ -1,0 +1,13 @@
+*.o
+*.lo
+*.la
+.deps
+.libs
+Makefile
+config.example
+config.h
+config.log
+config.status
+libtool
+mocp
+stamp-h1
